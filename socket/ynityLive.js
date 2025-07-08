@@ -63,32 +63,24 @@ socket.on("playerReady", async ({ roomId, courseId }) => {
   if (room.players.length >= 2 && room.players.every((p) => p.ready)) {
     console.log("🎬 Tous les joueurs sont prêts. Chargement des questions...");
 
-    let questions = [];
-    let coachMessage = "You're doing great!";
+    let coachMessage = ""; // ✅ On le déclare ici AVANT utilisation
+
     const courseIdUsed = room.courseId;
+    const res = await fetch("https://quiz-agent-b9q2.onrender.com/quiz/init", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId: courseIdUsed }),
+    });
 
-    try {
-      const res = await fetch("https://quiz-agent-production.up.railway.app/quiz/init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: courseIdUsed }),
-      });
+    const data = await res.json();
+    const questions = data.questions || [];
+    coachMessage = data.coach || "You're doing great!";
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Erreur serveur : ${errorText}`);
-      }
-
-      const data = await res.json();
-      questions = data.questions || [];
-      coachMessage = data.coach || coachMessage;
-
-      if (!questions.length) {
-        console.log("❌ Aucun flashcard trouvé via quiz_agent pour le cours :", courseIdUsed);
-        return;
-      }
-    } catch (err) {
-      console.error("❌ Erreur fetch quiz_agent/init :", err.message);
+    if (!questions.length) {
+      console.log(
+        "❌ Aucun flashcard trouvé via quiz_agent pour le cours :",
+        courseIdUsed
+      );
       return;
     }
 
@@ -99,56 +91,52 @@ socket.on("playerReady", async ({ roomId, courseId }) => {
     let timer = null;
     const answeredPlayers = new Set();
 
-    const sendQuestion = async () => {
-      if (qIndex >= questions.length) {
-        const ranking = [...room.players].sort((a, b) => b.score - a.score);
-        io.to(roomId).emit("quizEnd", ranking);
-        return;
-      }
-
-      try {
-        const res = await fetch("https://quiz-agent-production.up.railway.app/quiz/next", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questions, index: qIndex }),
-        });
-
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error("Erreur fetch quiz/next: " + errText);
-        }
-
-        const data = await res.json();
-
-        if (data.end) {
-          const ranking = [...room.players].sort((a, b) => b.score - a.score);
-          io.to(roomId).emit("quizEnd", ranking);
-          return;
-        }
-
-        currentQuestion = data.question;
-        answeredPlayers.clear();
-        io.to(roomId).emit("question", { data: currentQuestion, time: 15 });
-
-        if (data.coach) {
-          io.to(roomId).emit("coachMessage", { text: data.coach });
-        }
-
-        timer = setTimeout(() => {
-          qIndex++;
-          sendQuestion();
-        }, 15000);
-      } catch (err) {
-        console.error("❌ Erreur fetch quiz/next :", err.message);
-        io.to(roomId).emit("coachMessage", { text: "⚠️ Erreur de chargement des questions." });
+    const motivate = () => {
+      if (coachMessage) {
+        io.to(roomId).emit("coachMessage", { text: coachMessage });
       }
     };
 
-    // 🚀 Start quiz
+   const sendQuestion = async () => {
+  if (qIndex >= questions.length) {
+    const ranking = [...room.players].sort((a, b) => b.score - a.score);
+    io.to(roomId).emit("quizEnd", ranking);
+    return;
+  }
+
+  const res = await fetch("https://quiz-agent-b9q2.onrender.com/quiz/next", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ questions, index: qIndex }),
+  });
+
+  const data = await res.json();
+
+  if (data.end) {
+    const ranking = [...room.players].sort((a, b) => b.score - a.score);
+    io.to(roomId).emit("quizEnd", ranking);
+    return;
+  }
+
+  currentQuestion = data.question;
+  answeredPlayers.clear();
+  io.to(roomId).emit("question", { data: currentQuestion, time: 15 });
+
+  if (data.coach) {
+    io.to(roomId).emit("coachMessage", { text: data.coach });
+  }
+
+  timer = setTimeout(() => {
+    qIndex++;
+    sendQuestion();
+  }, 15000);
+};
+
+
+    // Lance la première question
     sendQuestion();
   }
 });
-
 
 
     // ✅ Gestion des réponses de tous les sockets

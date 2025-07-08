@@ -108,10 +108,7 @@ app.get("/", (req, res) => {
   res.send("🚀 YnityLearn backend is running & Google Auth ready");
 });
 
-server.listen(process.env.PORT || 5000, () => {
-  console.log("✅ Server + WebSocket lancé");
+const PORT = process.env.PORT;
+server.listen(PORT, () => {
+  console.log("✅ Server + WebSocket lancé sur port " + PORT);
 });
-
-// ▶️ Launch Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
