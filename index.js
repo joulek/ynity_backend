@@ -20,7 +20,10 @@ app.use(express.json());
 // ✅ CORS avant tout
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://front-ynity-x6sa.vercel.app"
+  "https://front-ynity-x6sa.vercel.app",
+  "https://ynity-backend.onrender.com" // Ajoutez ceci
+
+
 ];
 
 app.use(cors({
