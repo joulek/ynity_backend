@@ -15,7 +15,7 @@ function getSafeRoom(room) {
 function ynityLive(server) {
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: "https://front-ynity-x6sa.vercel.app",
       credentials: true,
     },
   });

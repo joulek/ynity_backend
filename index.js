@@ -16,26 +16,36 @@ setupLiveSocket(server);
 
 // 🔐 Middlewares
 app.use(express.json());
-const isProduction = process.env.NODE_ENV === "production";
-
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   cookie: {
-    secure: isProduction,               // true uniquement sur Render
-    httpOnly: true,
-    sameSite: isProduction ? "none" : "lax"
+    secure: true,
+    sameSite: "none"
   }
 }));
 
 
+
 app.use(passport.initialize());
 app.use(passport.session());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://front-ynity-x6sa.vercel.app"
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // http://localhost:5173
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS: " + origin));
+    }
+  },
   credentials: true
 }));
+
 const authRoutes = require('./routes/auth');
 app.use(authRoutes); // doit être après session et passport
 const courseRoutes = require('./routes/course');
