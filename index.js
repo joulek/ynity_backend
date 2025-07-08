@@ -16,17 +16,18 @@ setupLiveSocket(server);
 
 // 🔐 Middlewares
 app.use(express.json());
+const isProduction = process.env.NODE_ENV === "production";
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production", // true sur Render, false en local
-    sameSite: "none" // très important pour que les cookies passent entre domaines
+    secure: isProduction,               // true uniquement sur Render
+    httpOnly: true,
+    sameSite: isProduction ? "none" : "lax"
   }
 }));
-
 
 
 app.use(passport.initialize());
