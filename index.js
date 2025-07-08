@@ -21,7 +21,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-   cookie: { secure: true } // mettre true si https (Render oui)
+  cookie: { secure: true } // mettre true si https (Render oui)
 }));
 
 
@@ -29,7 +29,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: process.env.FRONTEND_URL, // http://localhost:5173
   credentials: true
 }));
 const authRoutes = require('./routes/auth');
@@ -78,8 +78,8 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log("✅ MongoDB connected"))
-.catch((err) => console.error("❌ MongoDB error:", err));
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error("❌ MongoDB error:", err));
 
 // 🔐 Google OAuth Routes
 app.get("/auth/google",
@@ -91,15 +91,14 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/" }),
   (req, res) => {
     // ✅ Rediriger vers frontend après connexion
-   res.redirect(process.env.FRONTEND_URL + "/home");
+    res.redirect(process.env.FRONTEND_URL + "/home");
   }
 );
 
 
 app.get('/auth/logout', (req, res) => {
   req.logout(() => {
-    res.redirect('http://localhost:5173/login');
-
+    res.redirect(process.env.FRONTEND_URL + "/login");
   });
 });
 
